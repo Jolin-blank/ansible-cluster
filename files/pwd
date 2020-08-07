@@ -1,0 +1,17 @@
+#-*- coding:utf-8 -*-
+
+from random import choice
+import string
+
+all='1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@#%^*()'
+fuhao='@#%^*'
+#def GenPassword(length=8,chars=string.ascii_letters+string.digits+string.punctuation):
+def GenPassword(length=12,chars=string.ascii_letters+string.digits+fuhao):
+    return ''.join([choice(chars) for i in range(length)])
+def GenPassword_Nopunc(length=8,chars=string.ascii_letters+string.digits):
+    return ''.join([choice(chars) for i in range(length)])
+def GenPassword_VPNPIN(length=8,chars=string.digits):
+    return ''.join([choice(chars) for i in range(length)])
+
+if __name__=="__main__":
+        print(GenPassword(12))

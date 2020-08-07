@@ -1,0 +1,63 @@
+---
+  - hosts: redis-cluster
+    vars_files:
+      - /root/ansible-cluster/vars/redis_var.yml
+    gather_facts: false
+    tasks:
+    - name: copy gen passwd file
+      copy: 
+        src: /root/ansible-cluster/files/pwd
+        dest: /root
+    - name: redis user add
+      user:
+       name: redis
+      notify: 
+        - gen redispass
+        - set redispass
+    - name: tar redis
+      unarchive: 
+        src: /root/ansible-cluster/files/redis-5.0.4.tar.gz
+        dest: /opt
+        group: redis
+        owner: redis
+      notify:
+       - create softlink
+       - install redis
+       - init redis-config
+       - start redis
+       - poweron start
+    handlers: 
+    - name: gen redispass
+      shell: python pwd  >/root/redispass.log
+    - name: set redispass
+      shell: cat /root/redispass.log |passwd  --stdin  redis
+    - name:  create softlink
+      file: 
+       src: /opt/redis-5.0.4
+       path: /opt/redis
+       state: link
+    - name : install redis
+      shell:  cd /opt/redis/ && make && make install 
+    - name: init redis-config
+      template: 
+       src: /root/ansible-cluster/template/redis.conf.j2
+       dest: /opt/redis/redis.conf
+       force: yes
+       group: redis
+       owner: redis
+       mode: 0640
+    - name: start redis
+      shell: su - redis -c 'redis-server /opt/redis/redis.conf'
+    - name: poweron start
+      shell: echo " su - redsi -c 'redis-server /opt/redis/redis.conf' " >>/etc/rc.local
+  - hosts: redis-create
+    gather_facts: false
+    vars: 
+    vars_files:
+      - /root/ansible-cluster/vars/redis_var.yml
+    tasks:
+      - name: create cluster
+        shell: echo yes | redis-cli --cluster create  {{REDIS1}}:{{PORT}}  {{REDIS2}}:{{PORT}} {{REDIS3}}:{{PORT}} {{REDIS4}}:{{PORT}} {{REDIS5}}:{{PORT}} {{REDIS6}}:{{PORT}} --cluster-replicas 1  -a {{ PASSWORD }} 
+
+
+

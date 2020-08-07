@@ -1,0 +1,24 @@
+brokerClusterName = HcMQCluster
+brokerName=BrokerA
+listenPort=30911
+namesrvAddr={{ ROCKETMQIP1 }}:9876;{{ ROCKETMQIP2 }}:9876;{{ ROCKETMQIP3 }}:9876
+storePathRootDir=/home/rocketmq/rmqstore/brokerA
+storePathCommitLog=/home/rocketmq/rmqstore/brokerA/commitlog
+enableDLegerCommitLog=true
+dLegerGroup=BrokerA
+dLegerPeers=n0-{{ ROCKETMQIP1 }}:40911;n1-{{ ROCKETMQIP2 }}:40911;n2-{{ ROCKETMQIP3 }}:40911
+## must be unique
+dLegerSelfId=n0
+sendMessageThreadPoolNums=8
+
+autoCreateTopicEnable=false
+traceTopicEnable=true
+deleteWhen=04
+fileReservedTime=48
+brokerRole=SYNC_MASTER
+flushDiskType=SYNC_FLUSH
+useReentrantLockWhenPutMessage=true
+slaveReadEnable=true
+messageDelayLevel=1s 5s 10s 30s 1m 2m 3m 4m 5m 10m 15m 20m 30m 1h 3h 6h 12h 24h
+
+

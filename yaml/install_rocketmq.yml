@@ -1,0 +1,90 @@
+---
+   - hosts: rocketmq-cluster
+     gather_facts: false
+     vars_files:
+      - /root/ansible-cluster/vars/rocketmq_var.yml 
+     tasks:
+      - include: /root/ansible-cluster/yaml/install_jdk.yml
+      - name: useradd  rocketmq
+        user:
+         name: rocketmq
+        notify:
+        - copy gen password file
+        - gen password
+        - set password  
+      - name: unzip  rocketmq
+        unarchive:
+         src: /root/ansible-cluster/files/rocketmq-all-4.6.0-bin-release.zip
+         dest: /opt
+         owner: rocketmq
+         group: rocketmq
+         keep_newer: yes
+        notify:
+        - create link
+        - set java args
+        - mkdir dleger-hc
+        - init config
+        - set config id
+        - export env
+        - start rocketmq namesrv
+        - start rocketmq broker
+        - poweron start
+     handlers:
+      - name: copy gen password file
+        copy: 
+         src: /root/ansible-cluster/files/pwd
+         dest: /root
+      - name: gen password
+        shell:  python /root/pwd >/root/rocketmqpass.log 
+      - name: set password
+        shell: cat  /root/rocketmqpass.log |passwd  rocketmq --stdin
+      - name: create link
+        file:
+         src: /opt/rocketmq-all-4.6.0-bin-release
+         path: /opt/rocketmq
+         state: link
+      - name: set java args
+        shell: |
+          sed  -i  's/-Xms4g -Xmx4g -Xmn2g/-Xms1g -Xmx1g -Xmn512m/' /opt/rocketmq/bin/runserver.sh
+          sed -i 's/-Xms8g -Xmx8g -Xmn4g/-Xms4g -Xmx4g -Xmn2g/' /opt/rocketmq/bin/runbroker.sh
+      - name: mkdir dleger-hc
+        file:
+         path: /opt/rocketmq/conf/dledger-hc
+         state: directory
+         owner: rocketmq
+         group: rocketmq
+      - name: init config
+        template:
+         src: /root/ansible-cluster/template/rocketmq.conf.j2
+         dest: /opt/rocketmq/conf/dledger-hc/brokerA.conf
+         owner: rocketmq
+         group: rocketmq
+      - name: set config id
+        shell: sed -i "/dLegerSelfId/s/=.*/=$(cat /opt/rocketmq/conf/dledger-hc/brokerA.conf |grep  dLegerPeers |egrep -o n[0-2]-`hostname -I` |awk -F '-' '{print$1}')/"  /opt/rocketmq/conf/dledger-hc/brokerA.conf
+      - name: export env
+        shell: |
+         echo 'export ROCKETMQ_HOME=/opt/rocketmq'  >>/etc/profile.d/rocketmq.sh
+         echo 'export PATH=$ROCKETMQ_HOME/bin:$PATH'  >>/etc/profile.d/rocketmq.sh
+         source  /etc/profile.d/rocketmq.sh
+        args:
+         creates: /etc/profile.d/rocketmq.sh   
+      - name: start rocketmq namesrv
+        shell: su - rocketmq -c ' nohup  /opt/rocketmq/bin/mqnamesrv  &' 
+      - name: start rocketmq broker
+        shell: su - rocketmq -c 'nohup /opt/rocketmq/bin/mqbroker -c /opt/rocketmq/conf/dledger-hc/brokerA.conf & '
+      - name: poweron start 
+        shell: |
+            echo "su  rocketmq -c 'nohup  /opt/rocketmq/bin/mqnamesrv  &'"  >> /etc/rc.local 
+            echo "su  rocketmq -c  'nohup  /opt/rocketmq/bin/mqbroker -c /opt/rocketmq/conf/dledger-hc/brokerA.conf &'"  >>/etc/rc.local
+
+   - hosts:  rocketmq-console
+     gather_facts: false
+     tasks: 
+       - name: copy console-file 
+         copy: 
+          src: /root/ansible-cluster/files/rocketmq-console-ng-1.0.1.jar 
+          dest: /home/rocketmq/
+          owner: rocketmq
+          group: rocketmq
+       - name: start console 
+         shell: su - rocketmq -c 'nohup  java -jar  /home/rocketmq/rocketmq-console-ng-1.0.1.jar  &'

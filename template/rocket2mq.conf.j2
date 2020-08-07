@@ -1,0 +1,21 @@
+brokerClusterName = HcMQCluster
+brokerName=BrokerB
+listenPort=30912
+namesrvAddr={{ ROCKETMQIP1 }}:9876;{{ ROCKETMQIP2 }}:9876;{{ ROCKETMQIP3 }}:9876
+storePathRootDir=/home/rocketmq/rmqstore/brokerB
+storePathCommitLog=/home/rocketmq/rmqstore/brokerB/commitlog
+enableDLegerCommitLog=true
+dLegerGroup=BrokerB
+dLegerPeers=n0-{{ ROCKETMQIP1 }}:40912;n1-{{ ROCKETMQIP2 }}:40912;n2-{{ ROCKETMQIP3 }}:40912
+## must be unique
+dLegerSelfId=n0
+sendMessageThreadPoolNums=8
+
+autoCreateTopicEnable=false
+traceTopicEnable=true
+deleteWhen=04
+fileReservedTime=48
+brokerRole=SYNC_MASTER
+flushDiskType=SYNC_FLUSH
+useReentrantLockWhenPutMessage=true
+slaveReadEnable=true

@@ -1,0 +1,20 @@
+---
+  - hosts: redis-cluster
+    gather_facts: false
+    ignore_errors: yes
+    tasks:
+     - name: kill  redis process
+       shell: pkill -u  redis
+     - name: remove redis file
+       shell: rm -rf /opt/redis*
+     - name: sleep 5s 
+       shell: sleep  5
+     - name: userdel redis data 
+       user:
+         name: redis
+         move_home: yes
+         state: absent
+         remove: yes
+     - name: cancel poweron 
+       shell: |
+         sed  -i '/redis-server/d'  /etc/rc.local

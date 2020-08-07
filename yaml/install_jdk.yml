@@ -1,0 +1,25 @@
+---
+ # - hosts: test 
+    # remote_user: prtg
+    # become: true
+    # become_method: su
+    # become_user: root
+   # gather_facts: false
+   # tasks:
+      - name: tar jdk 
+        unarchive: 
+          src: /root/ansible-cluster/files/jdk-8u151-linux-x64.tar.gz
+          dest: /usr/local
+          keep_newer: yes
+      #  notify:
+      #  - export env
+   # handlers:
+      - name: export env
+        shell: | 
+          creates=/etc/profile.d/java.sh
+          echo 'export JAVA_HOME=/usr/local/jdk1.8.0_151' >>/etc/profile.d/java.sh
+          echo 'export JRE_HOME=/usr/local/jdk1.8.0_151/jre' >>/etc/profile.d/java.sh
+          echo 'export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib:$CLASSPATH' >>/etc/profile.d/java.sh
+          echo 'export PATH=$JAVA_HOME/bin:$JRE_HOME/bin:$PATH' >>/etc/profile.d/java.sh
+           
+          

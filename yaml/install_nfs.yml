@@ -1,0 +1,31 @@
+---
+   - hosts: test
+     gather_facts: false
+     vars:
+      dir: /opt/nfs/share/amq
+      nfs_ip1: 192.168.111.140
+      nfs_ip2: 192.168.111.141
+      nfs_ip3: 192.168.111.142
+     tasks:
+      - name: install nfs bind-utils
+        yum: 
+         name: nfs-utils,rpcbind
+         state: installed
+      - name: make dir
+        file: 
+         path: "{{ dir }}"
+         state: directory 
+      - name: export dir
+        template:
+         src: /root/ansible-cluster/template/exports.j2
+         dest: /etc/exports
+      - name: service start
+        service: 
+         name: rpcbind
+         state: started
+      - name: nfs service start
+        service: 
+         name: nfs
+         state: started
+         enabled: yes
+         

@@ -1,0 +1,97 @@
+---
+  - hosts: redis-cluster
+    vars_files:
+      - /root/ansible-cluster/vars/redis3_var.yml
+    gather_facts: false
+    tasks:
+    - name: copy gen passwd file
+      copy: 
+        src: /root/ansible-cluster/files/pwd
+        dest: /root
+    - name: redis user add
+      user:
+       name: redis
+      notify: 
+        - gen redispass
+        - set redispass
+    - name: tar redis
+      unarchive: 
+        src: /root/ansible-cluster/files/redis-5.0.4.tar.gz
+        dest: /opt
+        group: redis
+        owner: redis
+        #mode: 0750
+      notify:
+       - create softlink
+       - install redis
+       - mkdir hcredis-cluster1
+       - mkdir hcredis-cluster2
+       - init redis-config1
+       - init redis-config2
+       - start redis
+       - poweron start
+    handlers: 
+    - name: gen redispass
+      shell: python pwd  >/root/redispass.log  
+    - name: set redispass
+      shell: cat /root/redispass.log |passwd  --stdin  redis
+    - name:  create softlink
+      file: 
+       src: /opt/redis-5.0.4
+       path: /opt/redis
+       state: link
+    - name : install redis
+      shell:  cd /opt/redis/ && make && make install 
+   # - name: gen redis_con_passwd
+   #   shell: python  /root/pwd
+   #   register: redispass
+   # - set_fact: redis_con_passwd={{ redispass.stdout }} 
+    - name: mkdir hcredis-cluster1 
+      file:
+       path: /opt/redis/hcredis-cluster/7000
+       state: directory
+       owner: redis
+       group: redis
+    - name: mkdir hcredis-cluster2 
+      file:
+       path: /opt/redis/hcredis-cluster/7001
+       state: directory
+       owner: redis
+       group: redis
+    - name: init redis-config1
+      vars:
+       PORT: 7000
+      template: 
+       src: /root/ansible-cluster/template/redis.conf.j2
+       dest: /opt/redis/hcredis-cluster/7000/redis.conf
+       group: redis
+       owner: redis
+       mode: 0640
+    - name: init redis-config2
+      vars:
+       PORT: 7001
+      template: 
+       src: /root/ansible-cluster/template/redis.conf.j2
+       dest: /opt/redis/hcredis-cluster/7001/redis.conf
+       group: redis
+       owner: redis
+       mode: 0640
+    - name: start redis
+      shell: |
+         su - redis -c 'redis-server /opt/redis/hcredis-cluster/7000/redis.conf'
+         su - redis -c 'redis-server /opt/redis/hcredis-cluster/7001/redis.conf'
+    - name: poweron start
+      shell: |
+        echo " su - redsi -c 'redis-server /opt/redis/hcredis-cluster/7000/redis.conf' " >>/etc/rc.local
+        echo " su - redsi -c 'redis-server /opt/redis/hcredis-cluster/7001/redis.conf' " >>/etc/rc.local
+       
+  - hosts: redis-create
+    gather_facts: false
+    vars_files:
+      - /root/ansible-cluster/vars/redis3_var.yml
+    tasks:
+      - name: create cluster
+        shell: echo yes | redis-cli --cluster create  {{REDIS1}}:{{PORT1}} {{REDIS1}}:{{PORT2}}  {{REDIS2}}:{{PORT1}} {{REDIS2}}:{{PORT2}} {{REDIS3}}:{{PORT1}} {{REDIS3}}:{{PORT2}} --cluster-replicas 1  -a {{PASSWORD}}
+
+
+

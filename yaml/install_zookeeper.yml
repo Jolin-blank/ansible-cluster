@@ -1,0 +1,75 @@
+---
+   - hosts: zookeeper-cluster
+     gather_facts: false
+     vars_files:
+      - /root/ansible-cluster/vars/zookeeper_var.yml 
+     tasks: 
+      - include: /root/ansible-cluster/yaml/install_jdk.yml
+      - name: copy gen passwd file
+        copy: 
+          src: /root/ansible-cluster/files/pwd
+          dest: /root
+      - name: zookeeper useradd
+        user: 
+          name: zookeeper 
+        notify: 
+         - gen zookeeperpass
+         - set zookeeperpass
+      - name: tar zookeeper
+        unarchive:
+          src: /root/ansible-cluster/files/zookeeper-3.4.14.tar.gz
+          dest: /opt/
+          group: zookeeper 
+          owner: zookeeper 
+          keep_newer: yes
+        notify: 
+         - create softlink
+         - copy env file
+         - init config
+         - mkdir data
+         - get id
+         - update file attr
+         - start zookeeper
+         - add path
+         - poweron start
+     handlers:
+      - name: gen zookeeperpass
+        shell: python /root/pwd  > /root/zookeeperpass.log 
+      - name: set zookeeperpass
+        shell: cat /root/zookeeperpass.log |passwd  --stdin  zookeeper
+      - name: create softlink
+        shell: ln -s /opt/zookeeper-3.4.14  /opt/zookeeper
+      - name: copy env file
+        copy: 
+          src: /root/ansible-cluster/files/java.env
+          dest: /opt/zookeeper/conf/
+          owner: zookeeper 
+          group: zookeeper 
+      - name: init config
+        template: 
+          src: /root/ansible-cluster/template/zoo.cfg.j2
+          dest: /opt/zookeeper/conf/zoo.cfg
+          owner: zookeeper 
+          group: zookeeper 
+      - name: mkdir data
+        file:
+          path: /home/zookeeper/zdata
+          state: directory 
+          owner: zookeeper 
+          group: zookeeper 
+      - name: get id
+        shell: grep `hostname -I` /opt/zookeeper/conf/zoo.cfg  |awk -F '.' '{print$2}'|awk -F '=' '{print$1}' >/home/zookeeper/zdata/myid
+      - name: update file attr
+        file:
+          path: /home/zookeeper/zdata/myid
+          owner: zookeeper 
+          group: zookeeper 
+      - name: add path
+        shell: | 
+         creates=/etc/profile.d/zookeeper.sh
+         echo  'export ZOOKEEPER_HOME=/opt/zookeeper' >>/etc/profile.d/zookeeper.sh
+         echo  'export PATH=$ZOOKEEPER_HOME/bin:$PATH' >>/etc/profile.d/zookeeper.sh
+      - name: start zookeeper
+        shell: su - zookeeper -c '/opt/zookeeper/bin/zkServer.sh start' 
+      - name: poweron start
+        shell: echo "su - zookeeper -c '/opt/zookeeper/bin/zkServer.sh start'" >>/etc/rc.local 

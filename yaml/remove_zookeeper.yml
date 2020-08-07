@@ -1,0 +1,21 @@
+---
+  - hosts: zookeeper-cluster
+    gather_facts: false
+    ignore_errors: yes
+    tasks:
+     - name: kill  zookeeper process
+       shell: pkill -u  zookeeper
+     - name: remove zookeeper file
+       shell: rm -rf /opt/zookeeper*
+     - name: sleep 5s 
+       shell: sleep  5
+     - name: userdel zookeeper data 
+       user:
+         name: zookeeper
+         move_home: yes
+         state: absent
+         remove: yes
+     - name: cancel poweron 
+       shell: |
+         sed  -i '/zkServer.sh/d'  /etc/rc.local
+         rm  -rf  /etc/profile.d/zookeeper.sh

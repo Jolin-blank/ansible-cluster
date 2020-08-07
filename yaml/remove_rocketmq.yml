@@ -1,0 +1,22 @@
+---
+  - hosts: rocketmq-cluster
+    gather_facts: false
+    ignore_errors: yes
+    tasks:
+     - name: kill  rocketmq
+       shell: pkill -u rocketmq 
+     - name: remove rocketmq file
+       shell: rm -rf /opt/rocketmq*
+     - name: sleep 5s 
+       shell: sleep  5
+     - name: userdel rocketmq data 
+       user:
+         name: rocketmq
+         move_home: yes
+         state: absent
+         remove: yes
+     - name: cancel poweron 
+       shell: |
+         sed  -i '/mqnamesrv/d'  /etc/rc.local
+         sed -i '/mqbroker/d' /etc/rc.local
+         rm  -rf  /etc/profile.d/rocketmq.sh
